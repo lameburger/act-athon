@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>act-athon</title>
+<style>
+  body { font-family: monospace; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
+  input, textarea, select { font-family: monospace; width: 100%; box-sizing: border-box; }
+  label { display: block; margin-top: 1em; }
+</style>
+</head>
+<body>
+
+<pre id="banner" style="text-align:center; font-size:clamp(7px,1.9vw,13px); line-height:1.05; margin:1.5em 0; letter-spacing:0"></pre>
+<script>
+(function(){
+  var F={
+   a:["      "," #### ","     #"," #####","#    #"," #####"],
+   c:["      "," #####","#     ","#     ","#     "," #####"],
+   t:["  #   ","  #   ","##### ","  #   ","  #   ","   ###"],
+   "-":["      ","      "," #### ","      ","      ","      "],
+   h:["#     ","#     ","##### ","#    #","#    #","#    #"],
+   o:["      "," #### ","#    #","#    #","#    #"," #### "],
+   n:["      ","##### ","#    #","#    #","#    #","#    #"]
+  };
+  var word="act-athon", rows=6, art=[];
+  for(var r=0;r<rows;r++){ var line=""; for(var k=0;k<word.length;k++){ line+=F[word[k]][r]+" "; } art.push(line); }
+  var W=art[0].length, el=document.getElementById("banner");
+  var shades=" .:-=+*#%@", blocks="░▒▓█", glitch="#%&@$*+=-:.<>/\\|";
+  var t=0, settled=0, done=false;
+  function frame(){
+    var out=[];
+    for(var r=0;r<rows;r++){
+      var line="";
+      for(var c=0;c<W;c++){
+        if(art[r][c]===" "){ line+=" "; continue; }
+        if(!done && c>settled){ line+=glitch[Math.random()*glitch.length|0]; continue; }
+        var v=(Math.sin((c*0.35 - r*0.6) - t*0.35)+1)/2;      // sweeping light, diagonal
+        line+=blocks[Math.min(blocks.length-1, v*blocks.length|0)];
+      }
+      out.push(line);
+    }
+    el.textContent=out.join("\n");
+    if(!done){ settled+=2; if(settled>W){ done=true; } }
+    t++;
+  }
+  frame(); setInterval(frame,60);
+})();
+</script>
+
+<p>a physical AI hackathon, hosted by <a href="https://labs.actor">actor labs</a> in collaboration with physical intelligence.</p>
+
+<p>
+teams of 3. 36 hours. deploy <b>pi 0.7</b> onto one of:
+</p>
+<ul>
+  <li>mini electric excavators</li>
+  <li>remote controlled heavy equipment</li>
+  <li>drones</li>
+  <li>manipulators</li>
+</ul>
+
+<hr>
+
+<pre>
+when:   sep 25, 6pm  ->  sep 27, 12pm
+where:  mountain view, ca  (exact address sent to accepted participants)
+who:    45 participants, teams of 3
+cost:   free
+</pre>
+
+<hr>
+
+<h2>logistics</h2>
+<p>food, caffeine, work space, 3d printer farm, tools, parts - all provided.</p>
+<p>we'll have a wide spread of food options - tell us your allergies in the signup form.</p>
+<p>note: if you want to sleep, you will need to bring a tent!</p>
+
+<hr>
+
+<h2>prizes</h2>
+<p><b>top four teams</b> - pick from:</p>
+<ul>
+  <li>BambuLabs 3D printers</li>
+  <li>a comma 4 (from comma.ai)</li>
+  <li>microcenter gift cards</li>
+  <li>an old retro macintosh</li>
+  <li>a typewriter</li>
+</ul>
+<p><b>interviews</b> - possibility for all participants.</p>
+
+<hr>
+
+<h2>prerequisites</h2>
+<p>you should have:</p>
+<ul>
+  <li>some background with VLAs (vision-language-action models) - trained, fine-tuned, or deployed one</li>
+  <li>hardware tinkering knowledge - you've jailbroken electronics, bread-boarded things</li>
+</ul>
+<p>if you haven't done either, this probably isn't the one for you.</p>
+
+<hr>
+
+<h2>judges</h2>
+<ul>
+  <li>Lane Burgett - CEO, actor labs</li>
+  <li>Shashi Verma - CTO, actor labs</li>
+  <li>Jack Vierhus - hardware engineer, actor labs</li>
+  <li>Quan - physical intelligence</li>
+  <li>tbc...</li>
+</ul>
+
+<hr>
+
+<h2>sponsors</h2>
+<p>tbd!!</p>
+<p><a href="sponsors.html">what we're looking for from sponsors -></a></p>
+
+<hr>
+
+<h2>sign up</h2>
+<p>45 spots available.</p>
+
+<!-- TODO: replace YOUR_FORM_ID with real Formspree id -->
+<form method="post" action="https://formspree.io/f/YOUR_FORM_ID">
+  <label>name<br><input name="name" required></label>
+  <label>email<br><input name="email" type="email" required></label>
+  <label>github / portfolio / anything<br><input name="link"></label>
+  <label>VLA background (a sentence or two)<br><textarea name="vla" rows="3" required></textarea></label>
+  <label>hardware background (a sentence or two)<br><textarea name="hardware" rows="3" required></textarea></label>
+  <label>which embodiment do you want to work on?<br>
+    <select name="embodiment">
+      <option>mini electric excavator</option>
+      <option>remote controlled heavy equipment</option>
+      <option>drone</option>
+      <option>manipulator</option>
+      <option>no preference</option>
+    </select>
+  </label>
+  <label>food allergies / dietary restrictions<br><input name="allergies" placeholder="none"></label>
+  <label>already have a team? list names (optional)<br><input name="team"></label>
+  <p><button type="submit">submit</button></p>
+</form>
+
+<hr>
+
+<p>questions: <a href="mailto:lane@labs.actor">lane@labs.actor</a></p>
+
+</body>
+</html>
