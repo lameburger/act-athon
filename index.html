@@ -114,7 +114,7 @@ cost:   free
 <hr>
 
 <h2>sponsors</h2>
-<p>tbd!!</p>
+<p>interested in sponsoring prizes and logistics? contact <a href="mailto:lane@labs.actor?subject=act-athon%20sponsorship">lane@labs.actor</a>.</p>
 <p><a href="sponsors.html">what we're looking for from sponsors -></a></p>
 
 <hr>
@@ -122,13 +122,16 @@ cost:   free
 <h2>sign up</h2>
 <p>45 spots available.</p>
 
-<!-- TODO: replace YOUR_FORM_ID with real Formspree id -->
-<form method="post" action="https://formspree.io/f/YOUR_FORM_ID">
-  <label>name<br><input name="name" required></label>
-  <label>email<br><input name="email" type="email" required></label>
-  <label>github / portfolio / anything<br><input name="link"></label>
-  <label>VLA background (a sentence or two)<br><textarea name="vla" rows="3" required></textarea></label>
-  <label>hardware background (a sentence or two)<br><textarea name="hardware" rows="3" required></textarea></label>
+<form method="post" action="https://formsubmit.co/lane@labs.actor">
+  <input type="hidden" name="_subject" value="act-athon signup">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_next" value="https://act-athon.com/thanks.html">
+  <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+  <label>name<br><input name="name" required maxlength="100"></label>
+  <label>email<br><input name="email" type="email" required maxlength="200"></label>
+  <label>github / portfolio / anything<br><input name="link" maxlength="300"></label>
+  <label>VLA background (a sentence or two)<br><textarea name="vla" rows="3" required maxlength="1000"></textarea></label>
+  <label>hardware background (a sentence or two)<br><textarea name="hardware" rows="3" required maxlength="1000"></textarea></label>
   <label>which embodiment do you want to work on?<br>
     <select name="embodiment">
       <option>mini electric excavator</option>
@@ -138,8 +141,8 @@ cost:   free
       <option>no preference</option>
     </select>
   </label>
-  <label>food allergies / dietary restrictions<br><input name="allergies" placeholder="none"></label>
-  <label>already have a team? list names (optional)<br><input name="team"></label>
+  <label>food allergies / dietary restrictions<br><input name="allergies" placeholder="none" maxlength="300"></label>
+  <label>already have a team? list names (optional)<br><input name="team" maxlength="300"></label>
   <p><button type="submit">submit</button></p>
 </form>
 
