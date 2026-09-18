@@ -8,6 +8,12 @@
   body { font-family: monospace; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
   input, textarea, select { font-family: monospace; width: 100%; box-sizing: border-box; }
   label { display: block; margin-top: 1em; }
+  .sponsor-strip { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-end; margin: 1.2em 0; }
+  .sponsor { display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none; color: inherit; }
+  .sponsor img { height: 34px; width: auto; max-width: 150px; object-fit: contain; filter: grayscale(1) contrast(1.1); opacity: .85; transition: filter .15s, opacity .15s; }
+  .sponsor:hover img { filter: none; opacity: 1; }
+  .sponsor span { font-size: 11px; color: #666; }
+  .sponsor:hover span { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -114,6 +120,24 @@ cost:   free
 <hr>
 
 <h2>sponsors</h2>
+<div class="sponsor-strip">
+  <a href="https://hummingbird.vc" class="sponsor" title="Hummingbird VC">
+    <img src="sponsors-assets/hummingbird-logo.svg" alt="Hummingbird VC">
+    <span>hummingbird</span>
+  </a>
+  <a href="https://gram.sr" class="sponsor" title="GRAM">
+    <img src="sponsors-assets/gram-logo.png" alt="GRAM">
+    <span>gram</span>
+  </a>
+  <a href="https://springsilicon.com" class="sponsor" title="Spring Silicon">
+    <img src="sponsors-assets/springsilicon-logo.svg" alt="Spring Silicon">
+    <span>spring silicon</span>
+  </a>
+  <a href="https://shotwell.ai" class="sponsor" title="Shotwell">
+    <img src="sponsors-assets/shotwell-logo.svg" alt="Shotwell">
+    <span>shotwell</span>
+  </a>
+</div>
 <p>interested in sponsoring prizes and logistics? contact <a href="mailto:lane@labs.actor?subject=act-athon%20sponsorship">lane@labs.actor</a>.</p>
 <p><a href="sponsors.html">what we're looking for from sponsors -></a></p>
 
