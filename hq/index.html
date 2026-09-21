@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>act-athon hq</title>
+<style>
+  body { font-family: monospace; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { text-align: left; padding: 3px 10px 3px 0; vertical-align: top; }
+  th { border-bottom: 1px solid #000; }
+  .day { font-weight: bold; }
+  .placeholder { background: #ffef9e; padding: 0 4px; }
+</style>
+</head>
+<body>
+
+<pre id="banner" style="text-align:center; font-size:clamp(7px,1.9vw,13px); line-height:1.05; margin:1.5em 0; letter-spacing:0"></pre>
+<script>
+(function(){
+  var title="act-athon", W=title.length+8, H=5, pad="  ";
+  var pat="===A     ", t=0, el=document.getElementById("banner");
+  var arrows={top:">",right:"v",bottom:"<",left:"^"};
+  function ch(i,side){ var c=pat[((i - t)%pat.length+pat.length)%pat.length]; return c==="A"?arrows[side]:c; }
+  function frame(){
+    var g=[]; for(var r=0;r<H;r++){ g.push(new Array(W+2).fill(" ")); }
+    var i=0;
+    for(var c=0;c<W+2;c++) g[0][c]=ch(i++,"top");
+    for(var r=1;r<H-1;r++) g[r][W+1]=ch(i++,"right");
+    for(var c=W+1;c>=0;c--) g[H-1][c]=ch(i++,"bottom");
+    for(var r=H-2;r>=1;r--) g[r][0]=ch(i++,"left");
+    var mid=(H-1)/2|0, off=1+((W-title.length)/2|0);
+    for(var k=0;k<title.length;k++) g[mid][off+k]=title[k];
+    el.textContent=g.map(function(row){return pad+row.join("")+pad;}).join("\n");
+    t++;
+  }
+  frame(); setInterval(frame,70);
+})();
+</script>
+
+<p style="text-align:center">participant hq &middot; sep 25-27 &middot; 2550 wyandotte st, suite 3, mountain view ca</p>
+
+<hr>
+
+<h2>comms</h2>
+<p>all event comms happen on discord: <a href="https://discord.gg/SQSbfU52sP">discord.gg/SQSbfU52sP</a></p>
+<p>questions before the event: <a href="mailto:lane@labs.actor">lane@labs.actor</a></p>
+
+<hr>
+
+<h2>schedule</h2>
+<table>
+<tr><th>when</th><th>what</th><th>notes</th></tr>
+<tr><td class="day" colspan="3">friday sep 25</td></tr>
+<tr><td>5:00 pm</td><td>doors open</td><td>check-in, find your team</td></tr>
+<tr><td>6:00 pm</td><td>kickoff + dinner</td><td>holyland catering - halal + vegan covered</td></tr>
+<tr><td>7:00 pm</td><td>hacking begins</td><td>hardware assignments finalized</td></tr>
+<tr><td>late</td><td>late night snacks</td><td>snack spread all night</td></tr>
+<tr><td class="day" colspan="3">saturday sep 26</td></tr>
+<tr><td>8:00 am</td><td>breakfast</td><td>bagels / fruit / coffee</td></tr>
+<tr><td>12:00 pm</td><td>lunch - grill</td><td>halal patties + marinated thighs, veggie burgers + paneer tikka</td></tr>
+<tr><td>2:00 pm</td><td>sponsor panels</td><td>gram &middot; spring silicon &middot; shotwell &middot; eniac</td></tr>
+<tr><td>6:00 pm</td><td>dinner</td><td>everest cuisine - halal + veg + vegan</td></tr>
+<tr><td>late</td><td>late night pizza</td><td></td></tr>
+<tr><td class="day" colspan="3">sunday sep 27</td></tr>
+<tr><td>8:00 am</td><td>breakfast</td><td>donut basket</td></tr>
+<tr><td>9:00 am</td><td>submissions close</td><td>hard deadline</td></tr>
+<tr><td>12:00 pm</td><td>lunch</td><td>taco truck - live service</td></tr>
+<tr><td>afternoon</td><td>demos + judging</td><td>winners announced after</td></tr>
+</table>
+<p>sleeping: bring a tent. showers: no. coffee: always.</p>
+
+<hr>
+
+<h2>rubric</h2>
+<p>every submission must include a <b>hardware hack</b> and a <b>model behind it</b>. demos are live, on the real machine, max 5 minutes.</p>
+<table>
+<tr><th>category</th><th>weight</th><th>what we're looking for</th></tr>
+<tr><td>autonomy</td><td>30</td><td>the model (pi 0.7 or other policy) is genuinely driving the behavior - not a scripted routine</td></tr>
+<tr><td>hardware hack</td><td>25</td><td>you built, modified, printed, or wired something physical that didn't exist friday</td></tr>
+<tr><td>reliability</td><td>20</td><td>the demo works when it counts. a modest thing that works beats a grand thing that doesn't</td></tr>
+<tr><td>ambition</td><td>15</td><td>difficulty of the task attempted relative to the embodiment</td></tr>
+<tr><td>style</td><td>10</td><td>did the room gasp</td></tr>
+</table>
+<p>judged sunday afternoon. named prizes selected by tier-1 sponsor judges.</p>
+
+<hr>
+
+<h2>hardware</h2>
+<p>assigned by the embodiment you picked when applying (limited platforms get a voting system on-site):</p>
+<ul>
+  <li><b>mini electric excavators</b> - takeuchi tb20e's with our own control interface</li>
+  <li><b>remote controlled heavy equipment</b> - rc-converted machines, our control stack</li>
+  <li><b>manipulators</b> - standard so-101 arms (bring mods if you like - plenty of plastic available)</li>
+</ul>
+<p>on the floor for everyone:</p>
+<ul>
+  <li>3d printer farm (bambulab a1's) + petg / tpu filament</li>
+  <li>compute for fine-tuning provided via physical intelligence</li>
+  <li>kits: pi 5 (4gb) + sd + psu, esp32's, servos, starter electronics kits, breadboards</li>
+  <li>wire (18/22/30 awg), heatshrink, bms boards, buck converters, 18650 cells</li>
+  <li>solder stations, drills, calipers, ifixit kits, wire strippers</li>
+</ul>
+
+<hr>
+
+<h2>docs</h2>
+<p>api + setup docs for each embodiment: coming in the next couple of days.</p>
+
+<hr>
+
+<h2>judges</h2>
+<ul>
+  <li>Lane Burgett - CEO, actor labs</li>
+  <li>Shashi Verma - CTO, actor labs</li>
+  <li>Jack Vierhus - hardware engineer, actor labs</li>
+  <li>Quan - cofounder, physical intelligence</li>
+  <li>Ulys Sorok - CEO, GRAM</li>
+  <li>Milan Lustig - CEO, Spring Silicon</li>
+</ul>
+
+<hr>
+
+<p><a href="https://act-athon.com">&lt;- act-athon.com</a></p>
+
+</body>
+</html>
