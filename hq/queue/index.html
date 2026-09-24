@@ -64,8 +64,11 @@ how it works: shared tools are leased in slots.<br>
 
 <p><a href="../">&lt;- back to hq</a></p>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-var KV = "https://950-uploader.tail36836f.ts.net/kv";
+// supabase project act-athon-queue. the publishable key is safe to ship: reads are public,
+// writes only go through the book() / return_booking() functions (see supabase/migrations).
+var DB = supabase.createClient("https://opaxaoyqjnutfdzxrefz.supabase.co", "sb_publishable_iBdF78cUtRqL0uAC50YNHQ_9SII8DPI");
 var ITEMS = [
   { id:"solder",  name:"soldering station", count:4, art:[
 "................",
@@ -198,7 +201,7 @@ function render(){
     div.appendChild(units);
     list.appendChild(div);
   });
-  document.getElementById("updated").textContent="updated "+new Date().toTimeString().slice(0,8)+" - refreshes every 20s";
+  document.getElementById("updated").textContent="updated "+new Date().toTimeString().slice(0,8)+" - live";
 }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
 
@@ -229,49 +232,38 @@ document.getElementById("bookform").addEventListener("submit", function(ev){
 
 function setErr(m){ document.getElementById("err").textContent=m||""; }
 
+// the server enforces the rules (1h window, 60 min max, no overlaps) and returns a readable error
 function book(item,unit,team,start,dur){
-  var t=now();
-  if(start > t+60*60000+30000){ setErr("you can only book a slot starting within the next hour."); return; }
-  if(start < t-60000) start=t;
-  var end=start+dur;
-  var key=unitKey(item,unit);
-  // fresh read, overlap check, write
-  fetch(KV+"/"+key+"?t="+t).then(function(r){ return r.ok? r.json() : []; }).catch(function(){ return []; })
-  .then(function(list){
-    if(!Array.isArray(list)) list=[];
-    list=list.filter(function(b){ return b.end > t-5*60000; }); // prune old
-    var clash=list.some(function(b){ return b.start<end && b.end>start; });
-    if(clash){ setErr(item.name+" #"+unit+" is already booked for that window. pick another time or unit."); load(); return; }
-    list.push({team:team,start:start,end:end});
-    return fetch(KV+"/"+key,{method:"PUT",body:JSON.stringify(list)}).then(function(r){
-      if(!r.ok) throw new Error("write failed "+r.status);
-      setErr(""); load();
-    });
-  }).catch(function(e){ setErr("booking failed ("+e.message+") - try again."); });
+  DB.rpc("book",{ p_unit:unitKey(item,unit), p_team:team, p_start:new Date(start).toISOString(), p_minutes:Math.round(dur/60000) })
+  .then(function(res){
+    if(res.error){ setErr(item.name+" #"+unit+": "+res.error.message+"."); }
+    else setErr("");
+    load();
+  });
 }
 
 function returnUnit(item,unit,act){
-  var key=unitKey(item,unit), t=now();
-  fetch(KV+"/"+key+"?t="+t).then(function(r){ return r.ok? r.json():[]; }).catch(function(){ return []; })
-  .then(function(list){
-    if(!Array.isArray(list)) list=[];
-    list=list.map(function(b){
-      if(b.team===act.team && b.start===act.start) b.end=t;
-      return b;
-    }).filter(function(b){ return b.end > t-5*60000; });
-    return fetch(KV+"/"+key,{method:"PUT",body:JSON.stringify(list)});
-  }).then(function(){ load(); }).catch(function(){ setErr("return failed - try again."); });
+  DB.rpc("return_booking",{ p_id:act.id }).then(function(res){
+    if(res.error) setErr("return failed - try again.");
+    load();
+  });
 }
 
 function load(){
-  var keys=[];
-  ITEMS.forEach(function(it){ for(var i=1;i<=it.count;i++) keys.push(unitKey(it,i)); });
-  Promise.all(keys.map(function(k){
-    return fetch(KV+"/"+k+"?t="+now()).then(function(r){ return r.ok? r.json():[]; }).catch(function(){ return []; })
-      .then(function(v){ BOOKINGS[k]=Array.isArray(v)?v:[]; });
-  })).then(render).catch(function(){ setErr("couldn't reach the queue server - check wifi."); });
+  DB.from("bookings").select("id,unit,team,start_at,end_at")
+    .gt("end_at", new Date(now()-5*60000).toISOString())
+  .then(function(res){
+    if(res.error){ setErr("couldn't reach the queue server - check wifi."); return; }
+    BOOKINGS={};
+    res.data.forEach(function(b){
+      (BOOKINGS[b.unit]=BOOKINGS[b.unit]||[]).push({ id:b.id, team:b.team, start:Date.parse(b.start_at), end:Date.parse(b.end_at) });
+    });
+    render();
+  });
 }
 load();
+// live updates when anyone books or returns; polling stays as a fallback
+DB.channel("bookings").on("postgres_changes",{ event:"*", schema:"public", table:"bookings" }, load).subscribe();
 setInterval(load, 20000);
 setInterval(render, 30000);
 </script>
