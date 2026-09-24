@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>act-athon hardware queue</title>
+<style>
+  body { font-family: monospace; max-width: 720px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
+  h1 { font-size: 18px; }
+  .item { border: 1px solid #000; margin: 14px 0; padding: 10px 14px; }
+  .item-head { display: flex; gap: 16px; align-items: center; }
+  .item-head canvas { image-rendering: pixelated; }
+  .item-title { font-weight: bold; }
+  .units { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .unit { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .unit .status { min-width: 260px; }
+  .free { color: #0a7a2f; }
+  .busy { color: #b30000; }
+  .soon { color: #946200; }
+  button { font-family: monospace; font-size: 12px; background: #fff; border: 1px solid #000; padding: 2px 8px; cursor: pointer; }
+  button:hover { background: #000; color: #fff; }
+  button:disabled { opacity: .4; cursor: default; border-color: #999; }
+  .rules { border: 1px dashed #000; padding: 8px 12px; font-size: 13px; }
+  #err { color: #b30000; min-height: 1.2em; }
+  dialog { font-family: monospace; border: 2px solid #000; padding: 16px; max-width: 320px; }
+  dialog input, dialog select { font-family: monospace; width: 100%; box-sizing: border-box; margin: 4px 0 10px; padding: 4px; }
+  #updated { color: #666; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>hardware queue</h1>
+<p class="rules">
+how it works: shared tools are leased in slots.<br>
+- you can only book a slot that <b>starts within the next 60 minutes</b><br>
+- max lease: <b>1 hour</b>, then it's back in the pool<br>
+- done early? hit <b>return</b> so the next team can grab it<br>
+- be nice. it's a queue, not a hoard.
+</p>
+<p id="updated">loading queue...</p>
+<p id="err"></p>
+<div id="list"></div>
+
+<dialog id="dlg">
+  <form method="dialog" id="bookform">
+    <div id="dlg-title" style="font-weight:bold; margin-bottom:8px"></div>
+    <label>team name<br><input id="f-team" required maxlength="40" placeholder="e.g. team excavator enjoyers"></label>
+    <label>start<br>
+      <select id="f-start"></select>
+    </label>
+    <label>duration<br>
+      <select id="f-dur">
+        <option value="15">15 min</option>
+        <option value="30">30 min</option>
+        <option value="45">45 min</option>
+        <option value="60" selected>60 min (max)</option>
+      </select>
+    </label>
+    <div style="display:flex; gap:8px">
+      <button value="ok">book it</button>
+      <button value="cancel" formnovalidate>cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<p><a href="../">&lt;- back to hq</a></p>
+
+<script>
+var KV = "https://950-uploader.tail36836f.ts.net/kv";
+var ITEMS = [
+  { id:"solder",  name:"soldering station", count:4, art:[
+"................",
+"......##........",
+".....#..#.......",
+"....#....#......",
+"...#......#.....",
+"..#........#....",
+".############...",
+".#..........#...",
+".#.###..###..#..",
+".############...",
+"................"]},
+  { id:"hotglue", name:"hot glue station", count:3, art:[
+"................",
+"....########....",
+"....#......###..",
+"....#......###..",
+"....########....",
+"......#..#......",
+"......#..#......",
+"......####......",
+".......##.......",
+".......#........",
+".......~........"]},
+  { id:"welder",  name:"spot welder", count:1, art:[
+"................",
+".##########.....",
+".#........#.....",
+".#.#####..#.....",
+".#.#...#..#.....",
+".#.#####..#.##..",
+".#........#.#.#.",
+".##########.#.#.",
+"......#.....#.#.",
+".....#.#....#.#.",
+"....#...####..#."]},
+  { id:"psu",     name:"benchtop power supply", count:3, art:[
+"................",
+".#############..",
+".#..........##..",
+".#.#######..##..",
+".#.#88.8.#..##..",
+".#.#######..##..",
+".#..........##..",
+".#.o..o..o..##..",
+".#############..",
+"...#........#...",
+"................"]},
+  { id:"jackery", name:"portable power bank (jackery)", count:3, art:[
+"................",
+".....######.....",
+"....#......#....",
+".##############.",
+".#............#.",
+".#.####..o..o.#.",
+".#.#..#.......#.",
+".#.####..o..o.#.",
+".#............#.",
+".##############.",
+"................"]}
+];
+var BOOKINGS = {}; // key -> [{team,start,end}]
+
+function unitKey(item,i){ return "q_"+item.id+"_"+i; }
+
+function drawArt(canvas, art){
+  var s=5, ctx=canvas.getContext("2d");
+  canvas.width=art[0].length*s; canvas.height=art.length*s;
+  for(var r=0;r<art.length;r++)for(var c=0;c<art[r].length;c++){
+    var ch=art[r][c];
+    if(ch==="."){continue;}
+    ctx.fillStyle = ch==="o" ? "#888" : ch==="8" ? "#0a7a2f" : ch==="~" ? "#946200" : "#111";
+    ctx.fillRect(c*s,r*s,s,s);
+  }
+}
+
+function now(){ return Date.now(); }
+function fmt(t){ var d=new Date(t); return d.toTimeString().slice(0,5); }
+function activeBooking(list){
+  var t=now();
+  for(var i=0;i<list.length;i++) if(list[i].start<=t && list[i].end>t) return list[i];
+  return null;
+}
+function nextBooking(list){
+  var t=now(), best=null;
+  for(var i=0;i<list.length;i++) if(list[i].start>t && (!best || list[i].start<best.start)) best=list[i];
+  return best;
+}
+
+function render(){
+  var list=document.getElementById("list"); list.innerHTML="";
+  ITEMS.forEach(function(item){
+    var div=document.createElement("div"); div.className="item";
+    var head=document.createElement("div"); head.className="item-head";
+    var cv=document.createElement("canvas"); drawArt(cv,item.art);
+    head.appendChild(cv);
+    var ti=document.createElement("div");
+    ti.innerHTML='<span class="item-title">'+item.name+'</span> <span style="color:#666">x'+item.count+'</span>';
+    head.appendChild(ti);
+    div.appendChild(head);
+    var units=document.createElement("div"); units.className="units";
+    for(var i=1;i<=item.count;i++){
+      (function(i){
+        var key=unitKey(item,i);
+        var bl=BOOKINGS[key]||[];
+        var act=activeBooking(bl), nxt=nextBooking(bl);
+        var u=document.createElement("div"); u.className="unit";
+        var st=document.createElement("span"); st.className="status";
+        var label="#"+i+" ";
+        if(act){
+          st.innerHTML=label+'<span class="busy">in use by '+esc(act.team)+' until '+fmt(act.end)+'</span>';
+        } else if(nxt && nxt.start < now()+60*60000){
+          st.innerHTML=label+'<span class="soon">free now - reserved by '+esc(nxt.team)+' at '+fmt(nxt.start)+'</span>';
+        } else {
+          st.innerHTML=label+'<span class="free">free</span>';
+        }
+        u.appendChild(st);
+        var b=document.createElement("button"); b.textContent="book";
+        b.onclick=function(){ openDialog(item,i); };
+        u.appendChild(b);
+        if(act){
+          var r=document.createElement("button"); r.textContent="return";
+          r.onclick=function(){ returnUnit(item,i,act); };
+          u.appendChild(r);
+        }
+        units.appendChild(u);
+      })(i);
+    }
+    div.appendChild(units);
+    list.appendChild(div);
+  });
+  document.getElementById("updated").textContent="updated "+new Date().toTimeString().slice(0,8)+" - refreshes every 20s";
+}
+function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+
+var current=null;
+function openDialog(item,i){
+  current={item:item,unit:i};
+  document.getElementById("dlg-title").textContent=item.name+" #"+i;
+  var sel=document.getElementById("f-start"); sel.innerHTML="";
+  var t=now();
+  for(var m=0;m<=60;m+=15){
+    var start=t+m*60000;
+    var o=document.createElement("option");
+    o.value=String(start);
+    o.textContent = m===0 ? "now" : "in "+m+" min ("+fmt(start)+")";
+    sel.appendChild(o);
+  }
+  document.getElementById("dlg").showModal();
+}
+
+document.getElementById("bookform").addEventListener("submit", function(ev){
+  if(ev.submitter && ev.submitter.value==="cancel") return;
+  var team=document.getElementById("f-team").value.trim();
+  var start=parseInt(document.getElementById("f-start").value,10);
+  var dur=parseInt(document.getElementById("f-dur").value,10)*60000;
+  if(!team||!current) return;
+  book(current.item, current.unit, team, start, Math.min(dur,3600000));
+});
+
+function setErr(m){ document.getElementById("err").textContent=m||""; }
+
+function book(item,unit,team,start,dur){
+  var t=now();
+  if(start > t+60*60000+30000){ setErr("you can only book a slot starting within the next hour."); return; }
+  if(start < t-60000) start=t;
+  var end=start+dur;
+  var key=unitKey(item,unit);
+  // fresh read, overlap check, write
+  fetch(KV+"/"+key+"?t="+t).then(function(r){ return r.ok? r.json() : []; }).catch(function(){ return []; })
+  .then(function(list){
+    if(!Array.isArray(list)) list=[];
+    list=list.filter(function(b){ return b.end > t-5*60000; }); // prune old
+    var clash=list.some(function(b){ return b.start<end && b.end>start; });
+    if(clash){ setErr(item.name+" #"+unit+" is already booked for that window. pick another time or unit."); load(); return; }
+    list.push({team:team,start:start,end:end});
+    return fetch(KV+"/"+key,{method:"PUT",body:JSON.stringify(list)}).then(function(r){
+      if(!r.ok) throw new Error("write failed "+r.status);
+      setErr(""); load();
+    });
+  }).catch(function(e){ setErr("booking failed ("+e.message+") - try again."); });
+}
+
+function returnUnit(item,unit,act){
+  var key=unitKey(item,unit), t=now();
+  fetch(KV+"/"+key+"?t="+t).then(function(r){ return r.ok? r.json():[]; }).catch(function(){ return []; })
+  .then(function(list){
+    if(!Array.isArray(list)) list=[];
+    list=list.map(function(b){
+      if(b.team===act.team && b.start===act.start) b.end=t;
+      return b;
+    }).filter(function(b){ return b.end > t-5*60000; });
+    return fetch(KV+"/"+key,{method:"PUT",body:JSON.stringify(list)});
+  }).then(function(){ load(); }).catch(function(){ setErr("return failed - try again."); });
+}
+
+function load(){
+  var keys=[];
+  ITEMS.forEach(function(it){ for(var i=1;i<=it.count;i++) keys.push(unitKey(it,i)); });
+  Promise.all(keys.map(function(k){
+    return fetch(KV+"/"+k+"?t="+now()).then(function(r){ return r.ok? r.json():[]; }).catch(function(){ return []; })
+      .then(function(v){ BOOKINGS[k]=Array.isArray(v)?v:[]; });
+  })).then(render).catch(function(){ setErr("couldn't reach the queue server - check wifi."); });
+}
+load();
+setInterval(load, 20000);
+setInterval(render, 30000);
+</script>
+</body>
+</html>
