@@ -25,11 +25,36 @@
   dialog { font-family: monospace; border: 2px solid #000; padding: 16px; max-width: 320px; }
   dialog input, dialog select { font-family: monospace; width: 100%; box-sizing: border-box; margin: 4px 0 10px; padding: 4px; }
   #updated { color: #666; font-size: 12px; }
+  #tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab.on { background: #000; color: #fff; }
+  #reqform label { display: block; margin-bottom: 8px; }
+  #reqform input { font-family: monospace; width: 100%; box-sizing: border-box; padding: 4px; }
+  .req { border-bottom: 1px solid #ddd; padding: 6px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+  .req .who { font-weight: bold; min-width: 120px; }
+  .req .what { flex: 1; min-width: 180px; }
+  .meta { color: #666; font-size: 12px; }
+  .chip { font-size: 11px; padding: 1px 6px; border: 1px solid currentColor; }
+  .chip.open { color: #946200; } .chip.fulfilled { color: #0a7a2f; } .chip.declined { color: #999; }
+  .disp-only { display: none; }
+  body.display { max-width: none; margin: 0; padding: 16px 28px; font-size: 19px; }
+  body.display .rules, body.display #tabs, body.display #reqform, body.display button, body.display a { display: none !important; }
+  body.display #board { display: grid; grid-template-columns: 3fr 2fr; gap: 32px; align-items: start; }
+  body.display #pane-queue, body.display #pane-req { display: block !important; }
+  body.display .disp-only { display: block; }
+  body.display h1 { font-size: 28px; margin: 0 0 6px; }
+  body.display h2 { font-size: 24px; margin: 6px 0 10px; }
+  body.display .item { padding: 6px 14px; margin: 8px 0; }
+  body.display .unit .status { min-width: 0; }
+  body.display .meta { font-size: 15px; }
 </style>
 </head>
 <body>
 
 <h1>hardware queue</h1>
+<nav id="tabs">
+  <button id="tab-queue" class="tab on">tool queue</button>
+  <button id="tab-req" class="tab">part requests</button>
+</nav>
 <p class="rules">
 how it works: shared tools are leased in slots.<br>
 - you can only book a slot that <b>starts within the next 60 minutes</b><br>
@@ -38,7 +63,21 @@ how it works: shared tools are leased in slots.<br>
 </p>
 <p id="updated">loading queue...</p>
 <p id="err"></p>
-<div id="list"></div>
+<div id="board">
+<div id="pane-queue"><div id="list"></div></div>
+<div id="pane-req" hidden>
+  <h2 class="disp-only">part requests</h2>
+  <form id="reqform" class="item">
+    <div class="item-title" style="margin-bottom:8px">request a part</div>
+    <label>team name<br><input id="r-team" required maxlength="40" placeholder="your team name"></label>
+    <label>part<br><input id="r-part" required maxlength="120" placeholder="what do you need"></label>
+    <label>quantity<br><input id="r-qty" maxlength="10" placeholder="1"></label>
+    <label>notes (optional)<br><input id="r-notes" maxlength="240" placeholder="specs, links, urgency"></label>
+    <p><button type="submit">submit request</button> <span id="r-msg" class="meta"></span></p>
+  </form>
+  <div id="reqlist"></div>
+</div>
+</div>
 
 <dialog id="dlg">
   <form method="dialog" id="bookform">
@@ -261,7 +300,78 @@ function load(){
     render();
   });
 }
-load();
+var PARAMS=new URLSearchParams(location.search);
+var DISPLAY=PARAMS.has("display");
+var PIN=PARAMS.get("organizer");
+
+function showTab(which){
+  document.getElementById("pane-queue").hidden = which!=="queue";
+  document.getElementById("pane-req").hidden = which!=="req";
+  document.getElementById("tab-queue").classList.toggle("on", which==="queue");
+  document.getElementById("tab-req").classList.toggle("on", which==="req");
+  try{ localStorage.setItem("actq-tab", which); }catch(e){}
+}
+document.getElementById("tab-queue").onclick=function(){ showTab("queue"); };
+document.getElementById("tab-req").onclick=function(){ showTab("req"); };
+try{ if(localStorage.getItem("actq-tab")==="req") showTab("req"); }catch(e){}
+
+var REQS=[];
+function renderReqs(){
+  var el=document.getElementById("reqlist"); el.innerHTML="";
+  var rank={open:0,fulfilled:1,declined:2};
+  var list=REQS.slice().sort(function(a,b){ return (rank[a.status]-rank[b.status]) || (b.created-a.created); });
+  if(DISPLAY) list=list.filter(function(r){ return r.status==="open"; });
+  if(!list.length){ el.innerHTML='<p class="meta">'+(DISPLAY?"no open requests.":"no requests yet.")+'</p>'; return; }
+  list.forEach(function(r){
+    var d=document.createElement("div"); d.className="req";
+    d.innerHTML='<span class="who">'+esc(r.team)+'</span>'+
+      '<span class="what">'+esc(r.part)+(r.qty?' <b>x'+esc(r.qty)+'</b>':'')+
+      (r.notes?'<br><span class="meta">'+esc(r.notes)+'</span>':'')+'</span>'+
+      '<span class="meta">'+fmt(r.created)+'</span>'+
+      '<span class="chip '+r.status+'">'+r.status+'</span>';
+    if(PIN){
+      ["fulfilled","declined","open"].forEach(function(st){
+        if(st===r.status) return;
+        var b=document.createElement("button"); b.textContent=st==="open"?"reopen":st;
+        b.onclick=function(){
+          DB.rpc("set_request_status",{p_id:r.id,p_status:st,p_pin:PIN}).then(function(res){
+            if(res.error) setErr(res.error.message+"."); loadReqs();
+          });
+        };
+        d.appendChild(b);
+      });
+    }
+    el.appendChild(d);
+  });
+}
+function loadReqs(){
+  DB.from("part_requests").select("id,team,part,qty,notes,status,created_at").order("created_at",{ascending:false}).limit(300)
+  .then(function(res){
+    if(res.error){ setErr("couldn't reach the queue server - check wifi."); return; }
+    REQS=res.data.map(function(r){ return {id:r.id,team:r.team,part:r.part,qty:r.qty,notes:r.notes,status:r.status,created:Date.parse(r.created_at)}; });
+    renderReqs();
+  });
+}
+document.getElementById("reqform").addEventListener("submit",function(ev){
+  ev.preventDefault();
+  var msg=document.getElementById("r-msg"); msg.textContent="sending...";
+  DB.rpc("submit_request",{
+    p_team:document.getElementById("r-team").value.trim(),
+    p_part:document.getElementById("r-part").value.trim(),
+    p_qty:document.getElementById("r-qty").value.trim(),
+    p_notes:document.getElementById("r-notes").value.trim()
+  }).then(function(res){
+    if(res.error){ msg.textContent=res.error.message+"."; return; }
+    msg.textContent="requested - an organizer will bring it over.";
+    ["r-part","r-qty","r-notes"].forEach(function(id){ document.getElementById(id).value=""; });
+    loadReqs();
+  });
+});
+
+if(DISPLAY){ document.body.classList.add("display"); }
+load(); loadReqs();
+DB.channel("part_requests").on("postgres_changes",{ event:"*", schema:"public", table:"part_requests" }, loadReqs).subscribe();
+setInterval(loadReqs, 20000);
 // live updates when anyone books or returns; polling stays as a fallback
 DB.channel("bookings").on("postgres_changes",{ event:"*", schema:"public", table:"bookings" }, load).subscribe();
 setInterval(load, 20000);
