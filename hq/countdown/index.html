@@ -4,10 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>act-athon countdown</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DSEG7+Classic&display=swap" rel="stylesheet">
 <style>
-  @font-face { font-family: "Seg"; src: local("DSEG7 Classic"); }
+  @font-face { font-family: "Seg"; font-weight: bold; src: url("https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2") format("woff2"); }
   html, body { height: 100%; margin: 0; background: #0b0b0a; overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; font-family: monospace; color: #bbb; }
   .rig { position: relative; width: min(92vw, 160vh); aspect-ratio: 16 / 8; }
@@ -24,7 +22,7 @@
     display: flex; align-items: center; justify-content: center;
   }
   #clock {
-    font-family: "DSEG7 Classic", "Seg", "Courier New", monospace;
+    font-family: "Seg", "Courier New", monospace; font-weight: bold;
     font-size: min(9.5vw, 17vh); color: #ff2a12; letter-spacing: 0.02em;
     text-shadow: 0 0 1.2vw #ff2a12, 0 0 3vw #b30f00;
     position: relative;
