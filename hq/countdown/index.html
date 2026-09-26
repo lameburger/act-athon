@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>act-athon countdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DSEG7+Classic&display=swap" rel="stylesheet">
+<style>
+  @font-face { font-family: "Seg"; src: local("DSEG7 Classic"); }
+  html, body { height: 100%; margin: 0; background: #0b0b0a; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: monospace; color: #bbb; }
+  .rig { position: relative; width: min(92vw, 160vh); aspect-ratio: 16 / 8; }
+  .box {
+    position: absolute; inset: 14% 6% 10% 6%;
+    background: linear-gradient(#2a2a26, #1c1c19);
+    border: 0.5vw solid #3a3a34; border-radius: 1.2vw;
+    box-shadow: inset 0 0 3vw #000, 0 2vw 4vw #000;
+  }
+  .screen {
+    position: absolute; inset: 22% 8% 30% 8%;
+    background: #120202; border: 0.4vw solid #000; border-radius: 0.6vw;
+    box-shadow: inset 0 0 2vw #000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #clock {
+    font-family: "DSEG7 Classic", "Seg", "Courier New", monospace;
+    font-size: min(9.5vw, 17vh); color: #ff2a12; letter-spacing: 0.02em;
+    text-shadow: 0 0 1.2vw #ff2a12, 0 0 3vw #b30f00;
+    position: relative;
+  }
+  #ghost {
+    position: absolute; left: 0; top: 0; color: #2e0703; text-shadow: none; z-index: -1;
+  }
+  .label { position: absolute; top: 9%; left: 0; right: 0; text-align: center;
+    color: #d8c14a; font-size: min(2vw, 3.6vh); letter-spacing: 0.4em; font-weight: bold; }
+  .sub { position: absolute; bottom: 12%; left: 8%; right: 8%; display: flex; justify-content: space-between;
+    font-size: min(1.4vw, 2.6vh); letter-spacing: 0.2em; color: #777; }
+  .led { width: min(1.6vw, 3vh); height: min(1.6vw, 3vh); border-radius: 50%;
+    background: #ff2a12; box-shadow: 0 0 1vw #ff2a12; display: inline-block; vertical-align: middle; margin-right: 0.6vw; }
+  .led.blink { animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0.12; box-shadow: none; } }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .danger #clock { animation: pulse 0.5s steps(1) infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .done .label { color: #ff2a12; }
+  @media (prefers-reduced-motion: reduce) { .led.blink, .danger #clock { animation: none; } }
+</style>
+</head>
+<body>
+<div class="rig" id="rig">
+  <svg class="wires" viewBox="0 0 1600 800" preserveAspectRatio="none">
+    <path d="M110,190 C40,80 260,40 330,120" stroke="#c0271a" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M200,180 C180,60 470,30 520,118" stroke="#1d5fc4" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M1490,190 C1560,70 1320,40 1270,120" stroke="#d8c14a" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M1400,180 C1420,50 1130,40 1080,118" stroke="#2e8b3a" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <rect x="300" y="100" width="1000" height="36" rx="8" fill="#6b5a2e" stroke="#3b3219" stroke-width="4"/>
+    <rect x="300" y="146" width="1000" height="10" rx="4" fill="#3b3219"/>
+  </svg>
+  <div class="box">
+    <div class="label">ACT-ATHON &middot; SUBMISSIONS CLOSE</div>
+    <div class="screen">
+      <div id="clock"><span id="ghost">88:88:88</span><span id="time">--:--:--</span></div>
+    </div>
+    <div class="sub">
+      <span><span class="led blink" id="led"></span>ARMED</span>
+      <span id="target">SUN 09:00 PT</span>
+    </div>
+  </div>
+</div>
+<script>
+// Sunday Sep 27 2026, 09:00 America/Los_Angeles (PDT, UTC-7)
+var TARGET = Date.parse("2026-09-27T09:00:00-07:00");
+var timeEl = document.getElementById("time"), ghost = document.getElementById("ghost"), rig = document.getElementById("rig");
+function pad(n){ return (n < 10 ? "0" : "") + n; }
+function tick(){
+  var ms = TARGET - Date.now();
+  if (ms <= 0) {
+    timeEl.textContent = "00:00:00";
+    document.body.classList.add("done");
+    document.querySelector(".label").textContent = "TIME'S UP - PENCILS DOWN";
+    return;
+  }
+  var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+  var txt = pad(h) + ":" + pad(m) + ":" + pad(sec);
+  timeEl.textContent = txt;
+  ghost.textContent = txt.replace(/\d/g, "8");
+  rig.classList.toggle("danger", ms < 10 * 60000);
+}
+tick(); setInterval(tick, 250);
+</script>
+</body>
+</html>
