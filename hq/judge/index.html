@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>act-athon judging</title>
+<style>
+  body { font-family: monospace; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
+  h1 { font-size: 18px; }
+  .rules { border: 1px dashed #000; padding: 8px 12px; font-size: 13px; }
+  ol#tower { list-style: none; padding: 0; margin: 16px 0; }
+  #tower li { display: flex; align-items: center; gap: 10px; border: 1px solid #000; margin: 6px 0; padding: 8px 10px;
+    background: #fff; cursor: grab; user-select: none; touch-action: none; }
+  #tower li.dragging { opacity: .4; }
+  #tower li.top5 { border-width: 2px; }
+  #tower .pos { font-weight: bold; min-width: 2.2em; }
+  #tower .name { flex: 1; }
+  #tower .team { font-weight: bold; }
+  #tower .captain { color: #666; font-size: 12px; }
+  #tower li.cut { margin-top: 18px; }
+  .arrows { display: flex; gap: 4px; }
+  button { font-family: monospace; font-size: 13px; background: #fff; border: 1px solid #000; padding: 3px 9px; cursor: pointer; }
+  button:hover { background: #000; color: #fff; }
+  #status { color: #666; font-size: 12px; min-height: 1.2em; }
+  #denied { color: #b30000; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  td, th { text-align: left; padding: 4px 8px 4px 0; vertical-align: top; }
+  th { border-bottom: 1px solid #000; }
+  tr.win td { font-weight: bold; }
+  .meta { color: #666; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>act-athon judging</h1>
+<div id="app"><p class="meta">loading...</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var DB = supabase.createClient("https://opaxaoyqjnutfdzxrefz.supabase.co", "sb_publishable_iBdF78cUtRqL0uAC50YNHQ_9SII8DPI");
+var TEAMS = [
+  { team:"Brando",  captain:"Dwijen Chawra" },
+  { team:"Streep",  captain:"Justin Kang" },
+  { team:"Culkin",  captain:"Abhinav Gupta" },
+  { team:"Gable",   captain:"Nihaar Shah" },
+  { team:"Hepburn", captain:"Nicole Ma" },
+  { team:"Hanks",   captain:"Edward Wang" },
+  { team:"Pacino",  captain:"Naman Menezes" },
+  { team:"Gosling", captain:"Octavian Cosmin" },
+  { team:"Cruise",  captain:"Mridhan Balaji" },
+  { team:"Depp",    captain:"Cyan Ding" },
+  { team:"Bogart",  captain:"Simon Mahns" }
+];
+var CAPTAIN = {}; TEAMS.forEach(function(t){ CAPTAIN[t.team]=t.captain; });
+var P = new URLSearchParams(location.search), KEY = P.get("k"), PIN = P.get("results");
+var app = document.getElementById("app");
+function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+function denied(){ app.innerHTML='<p id="denied">this page is for judges only. use the personal link you were sent.</p>'; }
+
+// ---------- judge view ----------
+var order = [], saveTimer = null;
+function renderTower(){
+  var ol = document.getElementById("tower"); ol.innerHTML = "";
+  order.forEach(function(team, i){
+    var li = document.createElement("li");
+    li.draggable = true; li.dataset.team = team;
+    if (i < 5) li.classList.add("top5");
+    if (i === 5) li.classList.add("cut");
+    li.innerHTML = '<span class="pos">#'+(i+1)+'</span><span class="name"><span class="team">'+esc(team)+
+      '</span><br><span class="captain">'+esc(CAPTAIN[team]||"")+'</span></span>';
+    var ar = document.createElement("span"); ar.className = "arrows";
+    [["up",-1],["down",1]].forEach(function(a){
+      var b = document.createElement("button"); b.textContent = a[0]==="up" ? "▲" : "▼"; b.title = "move "+a[0];
+      b.onclick = function(ev){ ev.stopPropagation(); move(i, i+a[1]); };
+      ar.appendChild(b);
+    });
+    li.appendChild(ar);
+    li.addEventListener("dragstart", function(){ li.classList.add("dragging"); dragFrom = i; });
+    li.addEventListener("dragend", function(){ li.classList.remove("dragging"); });
+    li.addEventListener("dragover", function(ev){ ev.preventDefault(); });
+    li.addEventListener("drop", function(ev){ ev.preventDefault(); move(dragFrom, i); });
+    ol.appendChild(li);
+  });
+}
+var dragFrom = null;
+function move(from, to){
+  if (from == null || to < 0 || to >= order.length || from === to) return;
+  var t = order.splice(from, 1)[0]; order.splice(to, 0, t);
+  renderTower(); queueSave();
+}
+function queueSave(){
+  document.getElementById("status").textContent = "saving...";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    DB.rpc("submit_ranking", { p_key: KEY, p_ranking: order }).then(function(res){
+      document.getElementById("status").textContent = res.error
+        ? "save failed: " + res.error.message
+        : "saved " + new Date().toTimeString().slice(0,5) + " - you can keep adjusting until judging closes";
+    });
+  }, 600);
+}
+function judgeView(){
+  DB.rpc("judge_whoami", { p_key: KEY }).then(function(res){
+    if (res.error || !res.data) return denied();
+    var me = res.data, saved = Array.isArray(me.ranking) ? me.ranking : null;
+    var all = TEAMS.map(function(t){ return t.team; });
+    order = saved ? saved.filter(function(t){ return all.indexOf(t) >= 0; }) : all.slice();
+    all.forEach(function(t){ if (order.indexOf(t) < 0) order.push(t); });
+    app.innerHTML = '<p>judge: <b>'+esc(me.judge)+'</b></p>'+
+      '<p class="rules">stack the teams best to worst. drag a team, or use the arrows.<br>'+
+      'the top 5 (thick borders) matter most - overall winners come from everyone\'s combined rankings.<br>'+
+      'your ranking saves automatically and stays private.</p>'+
+      '<ol id="tower"></ol><p id="status">'+(saved ? "loaded your saved ranking." : "not saved yet - move anything to save.")+'</p>';
+    renderTower();
+  });
+}
+
+// ---------- organizer results ----------
+function resultsView(){
+  DB.rpc("judge_results", { p_pin: PIN }).then(function(res){
+    if (res.error) return denied();
+    var rows = res.data || [], n = TEAMS.length, stats = {};
+    TEAMS.forEach(function(t){ stats[t.team] = { sum:0, count:0, firsts:0 }; });
+    rows.forEach(function(r){
+      (r.ranking || []).forEach(function(team, i){
+        if (!stats[team]) return;
+        stats[team].sum += i + 1; stats[team].count++; if (i === 0) stats[team].firsts++;
+      });
+    });
+    var ranked = TEAMS.map(function(t){
+      var s = stats[t.team];
+      return { team:t.team, captain:t.captain, avg: s.count ? s.sum / s.count : n + 1, count:s.count,
+               points: s.count ? s.count * (n + 1) - s.sum : 0, firsts:s.firsts };
+    }).sort(function(a,b){ return a.avg - b.avg || b.firsts - a.firsts; });
+    var html = '<p><b>overall results</b> - '+rows.length+' of 8 judges submitted '+
+      '(<a href="#" id="refresh">refresh</a>)</p><table><tr><th>#</th><th>team</th><th>avg rank</th><th>points</th><th>#1 votes</th></tr>';
+    ranked.forEach(function(r, i){
+      html += '<tr class="'+(i<5?"win":"")+'"><td>'+(i+1)+'</td><td>'+esc(r.team)+' <span class="meta">'+esc(r.captain)+'</span></td><td>'+
+        (r.count ? r.avg.toFixed(2) : "-")+'</td><td>'+r.points+'</td><td>'+r.firsts+'</td></tr>';
+    });
+    html += '</table><p class="meta">top 5 in bold. sorted by average rank (lower is better); ties broken by #1 votes. '+
+      'points = borda count (1st place = '+n+' pts).</p><h2 style="font-size:15px">by judge</h2>';
+    rows.forEach(function(r){
+      html += '<p><b>'+esc(r.judge)+'</b> <span class="meta">'+new Date(r.updated_at).toTimeString().slice(0,5)+'</span><br>'+
+        (r.ranking||[]).map(function(t,i){ return (i+1)+". "+esc(t); }).join(" &nbsp; ")+'</p>';
+    });
+    app.innerHTML = html;
+    document.getElementById("refresh").onclick = function(e){ e.preventDefault(); resultsView(); };
+  });
+}
+
+if (PIN) resultsView(); else if (KEY) judgeView(); else denied();
+</script>
+</body>
+</html>
