@@ -141,7 +141,7 @@ function resultsView(){
       return { team:t.team, captain:t.captain, avg: s.count ? s.sum / s.count : n + 1, count:s.count,
                points: s.count ? s.count * (n + 1) - s.sum : 0, firsts:s.firsts };
     }).sort(function(a,b){ return a.avg - b.avg || b.firsts - a.firsts; });
-    var html = '<p><b>overall results</b> - '+rows.length+' of 8 judges submitted '+
+    var html = '<p><b>overall results</b> - '+rows.length+' of 9 judges submitted '+
       '(<a href="#" id="refresh">refresh</a>)</p><table><tr><th>#</th><th>team</th><th>avg rank</th><th>points</th><th>#1 votes</th></tr>';
     ranked.forEach(function(r, i){
       html += '<tr class="'+(i<5?"win":"")+'"><td>'+(i+1)+'</td><td>'+esc(r.team)+' <span class="meta">'+esc(r.captain)+'</span></td><td>'+
