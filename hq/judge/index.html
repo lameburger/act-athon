@@ -29,6 +29,7 @@
   th { border-bottom: 1px solid #000; }
   tr.win td { font-weight: bold; }
   .meta { color: #666; font-size: 12px; }
+  .rubric { margin-top: 28px; border-top: 1px solid #000; padding-top: 12px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -110,7 +111,15 @@ function judgeView(){
       '<p class="rules">stack the teams best to worst. drag a team, or use the arrows.<br>'+
       'the top 5 (thick borders) matter most - overall winners come from everyone\'s combined rankings.<br>'+
       'your ranking saves automatically and stays private.</p>'+
-      '<ol id="tower"></ol><p id="status">'+(saved ? "loaded your saved ranking." : "not saved yet - move anything to save.")+'</p>';
+      '<ol id="tower"></ol><p id="status">'+(saved ? "loaded your saved ranking." : "not saved yet - move anything to save.")+'</p>'+
+      '<div class="rubric"><b>rubric</b> - what to weigh when stacking teams:'+
+      '<table><tr><th>category</th><th>weight</th><th>look for</th></tr>'+
+      '<tr><td>autonomy</td><td>30</td><td>the model is genuinely driving the behavior - not a scripted routine</td></tr>'+
+      '<tr><td>hardware hack</td><td>25</td><td>they built, modified, printed, or wired something physical that didn\'t exist friday</td></tr>'+
+      '<tr><td>reliability</td><td>20</td><td>the demo works when it counts. a modest thing that works beats a grand thing that doesn\'t</td></tr>'+
+      '<tr><td>ambition</td><td>15</td><td>difficulty of the task attempted relative to the embodiment</td></tr>'+
+      '<tr><td>style</td><td>10</td><td>did the room gasp</td></tr></table>'+
+      '<p class="meta">every submission must include a hardware hack and a model behind it.</p></div>';
     renderTower();
   });
 }
