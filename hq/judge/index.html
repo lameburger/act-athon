@@ -11,7 +11,8 @@
   .rules { border: 1px dashed #000; padding: 8px 12px; font-size: 13px; }
   ol#tower { list-style: none; padding: 0; margin: 16px 0; }
   #tower li { display: flex; align-items: center; gap: 10px; border: 1px solid #000; margin: 6px 0; padding: 8px 10px;
-    background: #fff; cursor: grab; user-select: none; touch-action: none; }
+    background: #fff; user-select: none; }
+  @media (hover: hover) and (pointer: fine) { #tower li { cursor: grab; } }
   #tower li.dragging { opacity: .4; }
   #tower li.top5 { border-width: 2px; }
   #tower .pos { font-weight: bold; min-width: 2.2em; }
@@ -65,7 +66,7 @@ function renderTower(){
   var ol = document.getElementById("tower"); ol.innerHTML = "";
   order.forEach(function(team, i){
     var li = document.createElement("li");
-    li.draggable = true; li.dataset.team = team;
+    li.draggable = CAN_DRAG; li.dataset.team = team;
     if (i < 5) li.classList.add("top5");
     if (i === 5) li.classList.add("cut");
     li.innerHTML = '<span class="pos">#'+(i+1)+'</span><span class="name"><span class="team">'+esc(team)+
@@ -85,6 +86,7 @@ function renderTower(){
   });
 }
 var dragFrom = null;
+var CAN_DRAG = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 function move(from, to){
   if (from == null || to < 0 || to >= order.length || from === to) return;
   var t = order.splice(from, 1)[0]; order.splice(to, 0, t);
