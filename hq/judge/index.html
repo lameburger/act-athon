@@ -108,9 +108,6 @@ function judgeView(){
     order = saved ? saved.filter(function(t){ return all.indexOf(t) >= 0; }) : all.slice();
     all.forEach(function(t){ if (order.indexOf(t) < 0) order.push(t); });
     app.innerHTML = '<p>judge: <b>'+esc(me.judge)+'</b></p>'+
-      '<p class="rules">stack the teams best to worst. drag a team, or use the arrows.<br>'+
-      'the top 5 (thick borders) matter most - overall winners come from everyone\'s combined rankings.<br>'+
-      'your ranking saves automatically and stays private.</p>'+
       '<ol id="tower"></ol><p id="status">'+(saved ? "loaded your saved ranking." : "not saved yet - move anything to save.")+'</p>'+
       '<div class="rubric"><b>rubric</b> - what to weigh when stacking teams:'+
       '<table><tr><th>category</th><th>weight</th><th>look for</th></tr>'+
